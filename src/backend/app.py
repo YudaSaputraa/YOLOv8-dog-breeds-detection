@@ -7,13 +7,11 @@ import logging
 import base64
 from io import BytesIO
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -22,7 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load models
 try:
     object_model = YOLO("/Users/komangyudasaputra/Documents/development/tugas_akhir/dog-breeds-detection/src/backend/object-det/best.pt")
     segmentation_model = YOLO("/Users/komangyudasaputra/Documents/development/tugas_akhir/dog-breeds-detection/src/backend/instance-seg/best.pt")
