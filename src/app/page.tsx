@@ -24,6 +24,20 @@ interface DetectionResult {
   speed?: Speed;
 }
 
+interface BatchTestResult {
+  filename: string;
+  image: string;
+  detections: Detection[];
+  inference_time: number;
+}
+
+interface BatchTestResponse {
+  success: boolean;
+  results: BatchTestResult[];
+  average_inference_time: number;
+  total_images: number;
+}
+
 export default function Home() {
   const [objectImage, setObjectImage] = useState<File | null>(null);
   const [segmentationImage, setSegmentationImage] = useState<File | null>(null);
@@ -32,6 +46,8 @@ export default function Home() {
   const [objectResult, setObjectResult] = useState<DetectionResult | null>(null);
   const [segmentationResult, setSegmentationResult] = useState<DetectionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [batchTestResults, setBatchTestResults] = useState<BatchTestResponse | null>(null);
+  const [isBatchTesting, setIsBatchTesting] = useState(false);
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -52,6 +68,8 @@ export default function Home() {
     if (!image) return alert("Please upload an image first");
 
     setIsLoading(true);
+    // Clear batch test results when starting detection
+    setBatchTestResults(null);
     const formData = new FormData();
     formData.append("file", image);
 
@@ -75,7 +93,7 @@ export default function Home() {
       const result = {
         image: `data:image/jpeg;base64,${data.image}`,
         detections: data.detections,
-        speed: data.speed || {  // Add default values if speed is undefined
+        speed: data.speed || {
           preprocess: 0,
           inference: 0,
           postprocess: 0
@@ -93,6 +111,35 @@ export default function Home() {
       alert("Error during detection. Please check console for details.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBatchTest = async (type: "object" | "segmentation") => {
+    setIsBatchTesting(true);
+    // Clear all detection results when starting batch test
+    setObjectResult(null);
+    setSegmentationResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("type", type);
+
+      const res = await fetch("/api/batch-test", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setBatchTestResults(data);
+    } catch (err) {
+      console.error("Error during batch testing:", err);
+      alert("Error during batch testing. Please check console for details.");
+    } finally {
+      setIsBatchTesting(false);
     }
   };
 
@@ -165,6 +212,68 @@ export default function Home() {
     );
   };
 
+  const renderBatchTestResults = () => {
+    if (!batchTestResults) return null;
+
+    return (
+      <div className="mt-8 w-full max-w-6xl">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-800">Batch Test Results</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Image</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Filename</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Detections</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Inference Time (ms)</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {batchTestResults.results.map((result, index) => (
+                  <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{index + 1}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-center">
+                        <Image
+                          src={`data:image/jpeg;base64,${result.image}`}
+                          alt={result.filename}
+                          width={200}
+                          height={200}
+                          className="rounded-lg shadow-sm object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.filename}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="space-y-1">
+                        {result.detections.map((det, idx) => (
+                          <div key={idx} className="text-sm text-gray-600">
+                            <span className="font-medium text-gray-900">{det.class}</span>
+                            <span className="text-gray-500"> ({Math.round(det.confidence * 100)}%)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center font-medium">{result.inference_time}</td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-50">
+                  <td colSpan={4} className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Average Inference Time:</td>
+                  <td className="px-6 py-4 text-center text-sm font-semibold text-gray-900">{batchTestResults.average_inference_time} ms</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col items-center min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">YOLOv8 Object Detection & Instance Segmentation</h1>
@@ -196,6 +305,15 @@ export default function Home() {
           >
             {isLoading ? 'Processing...' : 'Detect Object'}
           </button>
+          <button 
+            onClick={() => handleBatchTest("object")} 
+            disabled={isBatchTesting}
+            className={`px-6 py-2 bg-blue-400 text-white rounded shadow ${
+              isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {isBatchTesting ? 'Testing...' : 'Inference Test'}
+          </button>
           {renderResults(objectResult)}
         </div>
 
@@ -225,9 +343,19 @@ export default function Home() {
           >
             {isLoading ? 'Processing...' : 'Detect Segmentation'}
           </button>
+          <button 
+            onClick={() => handleBatchTest("segmentation")} 
+            disabled={isBatchTesting}
+            className={`px-6 py-2 bg-green-400 text-white rounded shadow ${
+              isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {isBatchTesting ? 'Testing...' : 'Inference Test'}
+          </button>
           {renderResults(segmentationResult)}
         </div>
       </div>
+      {renderBatchTestResults()}
     </div>
   );
 }

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Test datasets
+src/app/test_dataset/instance_seg/
+src/app/test_dataset/object_det/

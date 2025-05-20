@@ -12,11 +12,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert File to ArrayBuffer
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create form-data using the imported FormData
     const formDataForPython = new FormData();
     formDataForPython.append("file", buffer, {
       filename: file.name,
