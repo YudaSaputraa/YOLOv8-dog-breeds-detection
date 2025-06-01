@@ -48,6 +48,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [batchTestResults, setBatchTestResults] = useState<BatchTestResponse | null>(null);
   const [isBatchTesting, setIsBatchTesting] = useState(false);
+  const [isEvalMode, setIsEvalMode] = useState(false);
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -276,6 +277,49 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-8">
+      {/* Eval Mode Toggle */}
+      <div className="fixed top-4 right-4 flex items-center gap-3 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-gray-100">
+        <span className="text-gray-700 font-medium text-sm">Eval Mode</span>
+        <button
+          onClick={() => setIsEvalMode(!isEvalMode)}
+          className={`
+            relative inline-flex h-6 w-12 items-center rounded-full transition-all duration-300 ease-in-out
+            focus:outline-none focus:ring-2 focus:ring-offset-2
+            ${isEvalMode 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 focus:ring-blue-500' 
+              : 'bg-gradient-to-r from-gray-200 to-gray-300 focus:ring-gray-400'
+            }
+          `}
+        >
+          <span
+            className={`
+              inline-block h-5 w-5 transform rounded-full bg-white shadow-md
+              transition-all duration-300 ease-in-out
+              ${isEvalMode ? 'translate-x-7' : 'translate-x-0.5'}
+              ${isEvalMode ? 'scale-100' : 'scale-90'}
+            `}
+          />
+          <span
+            className={`
+              absolute inset-0 flex items-center justify-between px-1.5
+              text-[10px] font-semibold transition-opacity duration-300
+              ${isEvalMode ? 'opacity-0' : 'opacity-100'}
+            `}
+          >
+            <span className="text-gray-400">OFF</span>
+          </span>
+          <span
+            className={`
+              absolute inset-0 flex items-center justify-between px-1.5
+              text-[10px] font-semibold transition-opacity duration-300
+              ${isEvalMode ? 'opacity-100' : 'opacity-0'}
+            `}
+          >
+            <span className="text-white">ON</span>
+          </span>
+        </button>
+      </div>
+
       <h1 className="text-2xl font-bold mb-6">YOLOv8 Object Detection & Instance Segmentation</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
@@ -305,15 +349,17 @@ export default function Home() {
           >
             {isLoading ? 'Processing...' : 'Detect Object'}
           </button>
-          <button 
-            onClick={() => handleBatchTest("object")} 
-            disabled={isBatchTesting}
-            className={`px-6 py-2 bg-blue-400 text-white rounded shadow ${
-              isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {isBatchTesting ? 'Testing...' : 'Inference Test'}
-          </button>
+          {isEvalMode && (
+            <button 
+              onClick={() => handleBatchTest("object")} 
+              disabled={isBatchTesting}
+              className={`px-6 py-2 bg-blue-400 text-white rounded shadow ${
+                isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isBatchTesting ? 'Testing...' : 'Inference Test'}
+            </button>
+          )}
           {renderResults(objectResult)}
         </div>
 
@@ -343,15 +389,17 @@ export default function Home() {
           >
             {isLoading ? 'Processing...' : 'Detect Segmentation'}
           </button>
-          <button 
-            onClick={() => handleBatchTest("segmentation")} 
-            disabled={isBatchTesting}
-            className={`px-6 py-2 bg-green-400 text-white rounded shadow ${
-              isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {isBatchTesting ? 'Testing...' : 'Inference Test'}
-          </button>
+          {isEvalMode && (
+            <button 
+              onClick={() => handleBatchTest("segmentation")} 
+              disabled={isBatchTesting}
+              className={`px-6 py-2 bg-green-400 text-white rounded shadow ${
+                isBatchTesting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isBatchTesting ? 'Testing...' : 'Inference Test'}
+            </button>
+          )}
           {renderResults(segmentationResult)}
         </div>
       </div>
